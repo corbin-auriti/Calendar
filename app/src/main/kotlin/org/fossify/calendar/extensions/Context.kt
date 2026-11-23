@@ -31,6 +31,7 @@ import androidx.print.PrintHelper
 import org.fossify.calendar.R
 import org.fossify.calendar.activities.CalendarPickerActivity
 import org.fossify.calendar.activities.EventActivity
+import org.fossify.calendar.activities.ReminderActivity
 import org.fossify.calendar.activities.SnoozeReminderActivity
 import org.fossify.calendar.activities.TaskActivity
 import org.fossify.calendar.databases.EventsDatabase
@@ -593,6 +594,10 @@ fun Context.getNotification(
             )
         }
 
+    if (config.fullscreenReminders && !publicVersion) {
+        builder.setFullScreenIntent(getFullScreenPendingIntent(this, event), true)
+    }
+
     if (config.vibrateOnReminder) {
         val vibrateArray = LongArray(2) { 500 }
         builder.setVibrate(vibrateArray)
@@ -618,6 +623,18 @@ private fun getFormattedEventTime(startTime: String, endTime: String) =
 private fun getPendingIntent(context: Context, event: Event): PendingIntent {
     val activityClass = getActivityToOpen(event.isTask())
     val intent = Intent(context, activityClass)
+    intent.putExtra(EVENT_ID, event.id)
+    intent.putExtra(EVENT_OCCURRENCE_TS, event.startTS)
+    return PendingIntent.getActivity(
+        context,
+        event.id!!.toInt(),
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+}
+
+private fun getFullScreenPendingIntent(context: Context, event: Event): PendingIntent {
+    val intent = Intent(context, ReminderActivity::class.java)
     intent.putExtra(EVENT_ID, event.id)
     intent.putExtra(EVENT_OCCURRENCE_TS, event.startTS)
     return PendingIntent.getActivity(

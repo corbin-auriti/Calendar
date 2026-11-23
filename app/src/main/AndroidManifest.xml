@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-permission
@@ -211,6 +212,17 @@
             android:exported="false"
             android:label="@string/event_types"
             android:parentActivityName=".activities.SettingsActivity" />
+
+        <activity
+            android:name=".activities.ReminderActivity"
+            android:configChanges="orientation"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:showWhenLocked="true"
+            android:taskAffinity=""
+            android:theme="@style/AppTheme"
+            android:turnScreenOn="true" />
 
         <activity
             android:name=".activities.SnoozeReminderActivity"

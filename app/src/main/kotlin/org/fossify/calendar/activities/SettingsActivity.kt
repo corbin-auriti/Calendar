@@ -203,6 +203,7 @@ class SettingsActivity : SimpleActivity() {
         setupReminderAudioStream()
         setupUseSameSnooze()
         setupLoopReminders()
+        setupFullscreenReminders()
         setupSnoozeTime()
         setupCaldavSync()
         setupManageSyncedCalendars()
@@ -706,6 +707,14 @@ class SettingsActivity : SimpleActivity() {
         settingsLoopRemindersHolder.setOnClickListener {
             settingsLoopReminders.toggle()
             config.loopReminders = settingsLoopReminders.isChecked
+        }
+    }
+
+    private fun setupFullscreenReminders() = binding.apply {
+        settingsFullscreenReminders.isChecked = config.fullscreenReminders
+        settingsFullscreenRemindersHolder.setOnClickListener {
+            settingsFullscreenReminders.toggle()
+            config.fullscreenReminders = settingsFullscreenReminders.isChecked
         }
     }
 
