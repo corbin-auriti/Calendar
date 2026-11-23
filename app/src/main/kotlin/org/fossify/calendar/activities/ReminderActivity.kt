@@ -99,7 +99,7 @@ class ReminderActivity : AppCompatActivity() {
 
     private fun applyDynamicColors() {
         DynamicColors.applyToActivityIfAvailable(this)
-        val starColor = MaterialColors.harmonizeWithPrimary(this, BASE_STAR_COLOR)
+        val starColor = MaterialColors.harmonizeWithPrimary(binding.root, BASE_STAR_COLOR)
         binding.reminderStar.setStarColor(starColor)
         binding.reminderDismissHint.setTextColor(starColor)
 
