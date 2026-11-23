@@ -716,6 +716,9 @@ class SettingsActivity : SimpleActivity() {
             settingsFullscreenReminders.toggle()
             config.fullscreenReminders = settingsFullscreenReminders.isChecked
         }
+        settingsReminderPreviewHolder.setOnClickListener {
+            ReminderActivity.launchTest(this@SettingsActivity)
+        }
     }
 
     private fun setupUseSameSnooze() = binding.apply {

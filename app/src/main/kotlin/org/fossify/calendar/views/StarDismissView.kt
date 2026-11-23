@@ -6,16 +6,12 @@ import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.RadialGradient
-import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.LinearInterpolator
-import org.fossify.commons.extensions.adjustAlpha
 
 class StarDismissView @JvmOverloads constructor(
     context: Context,
@@ -25,41 +21,42 @@ class StarDismissView @JvmOverloads constructor(
     companion object {
         private const val STAR_POINTS = 5
         private const val VERTEX_COUNT = STAR_POINTS * 2
+        private const val DEFAULT_STAR_COLOR = 0xFFFFD54A.toInt()
         private const val INNER_RADIUS_RATIO = 0.5f
-        private const val CORNER_CUT_RATIO = 0.35f
-        private const val BOB_AMPLITUDE_RATIO = 0.035f
-        private const val MORPH_AMPLITUDE = 0.06f
+        private const val CORNER_CUT_RATIO = 0.55f
+        private const val BOB_AMPLITUDE_RATIO = 0.06f
+        private const val MORPH_AMPLITUDE = 0.09f
         private const val PHASE_STEP_PER_VERTEX = 0.7f
-        private const val MAX_ROTATION_DEGREES = 14f
-        private const val ANIMATION_DURATION_MS = 5200L
-        private const val DRAG_SCALE = 0.55f
-        private const val DISMISS_DRAG_RATIO = 0.28f
-        private const val SPRING_DURATION_MS = 280L
-        private const val DISMISS_DURATION_MS = 220L
+        private const val CYCLE_DURATION_MS = 1300L
+        private const val DEGREES_PER_CYCLE = 5f
+        private const val DRAG_SCALE = 0.5f
+        private const val DISMISS_DRAG_RATIO = 0.32f
+        private const val SPRING_DURATION_MS = 260L
+        private const val DISMISS_DURATION_MS = 200L
         private const val FULL_ALPHA = 255
-        private const val GLOW_RADIUS_RATIO = 1.7f
-        private const val GLOW_ALPHA = 0.28f
     }
 
     var dismissal: (() -> Unit)? = null
 
     private val bodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#FFD54A")
+        color = DEFAULT_STAR_COLOR
         style = Paint.Style.FILL
     }
-    private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val starPath = Path()
     private val vertexCoordinates = FloatArray(VERTEX_COUNT * 2)
 
     private var animatorPhase = 0f
     private var bobOffset = 0f
     private var dragOffsetX = 0f
+    private var dragOffsetY = 0f
     private var isDragging = false
     private var lastTouchX = 0f
-    private var halfParentWidth = 0f
+    private var lastTouchY = 0f
+    private var maxDragDistance = 0f
+    private var startedAtMs = 0L
 
     private val idleAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-        duration = ANIMATION_DURATION_MS
+        duration = CYCLE_DURATION_MS
         repeatCount = ValueAnimator.INFINITE
         interpolator = LinearInterpolator()
         addUpdateListener {
@@ -73,6 +70,7 @@ class StarDismissView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        startedAtMs = System.currentTimeMillis()
         idleAnimator.start()
     }
 
@@ -83,11 +81,17 @@ class StarDismissView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        halfParentWidth = (parent as? View)?.width?.div(2f) ?: (w * DISMISS_DRAG_RATIO * 2)
+        val parentView = parent as? View
+        val parentWidth = parentView?.width ?: w
+        val parentHeight = parentView?.height ?: h
+        maxDragDistance = minOf(parentWidth, parentHeight) * DISMISS_DRAG_RATIO
     }
 
     private fun currentBobOffset() =
         (Math.sin((animatorPhase * Math.PI * 2).toDouble()) * height * BOB_AMPLITUDE_RATIO).toFloat()
+
+    private fun currentRotationDegrees() =
+        ((System.currentTimeMillis() - startedAtMs).toFloat() / CYCLE_DURATION_MS) * DEGREES_PER_CYCLE
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -95,13 +99,16 @@ class StarDismissView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 isDragging = true
                 lastTouchX = event.x
+                lastTouchY = event.y
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
 
             MotionEvent.ACTION_MOVE -> {
                 dragOffsetX += (event.x - lastTouchX) * DRAG_SCALE
+                dragOffsetY += (event.y - lastTouchY) * DRAG_SCALE
                 lastTouchX = event.x
-                if (Math.abs(dragOffsetX) > halfParentWidth * DISMISS_DRAG_RATIO) {
+                lastTouchY = event.y
+                if (currentDragDistance() > maxDragDistance) {
                     isDragging = false
                     animateDismissal()
                 } else {
@@ -124,11 +131,16 @@ class StarDismissView @JvmOverloads constructor(
         return true
     }
 
+    private fun currentDragDistance() =
+        Math.hypot(dragOffsetX.toDouble(), dragOffsetY.toDouble()).toFloat()
+
     private fun springBack() {
-        ValueAnimator.ofFloat(dragOffsetX, 0f).apply {
+        ValueAnimator.ofFloat(1f, 0f).apply {
             duration = SPRING_DURATION_MS
             addUpdateListener {
-                dragOffsetX = it.animatedValue as Float
+                val fraction = it.animatedValue as Float
+                dragOffsetX *= fraction
+                dragOffsetY *= fraction
                 invalidate()
             }
             start()
@@ -136,18 +148,21 @@ class StarDismissView @JvmOverloads constructor(
     }
 
     private fun animateDismissal() {
-        val startOffset = dragOffsetX
+        val startOffsetX = dragOffsetX
+        val startOffsetY = dragOffsetY
         ValueAnimator.ofFloat(0f, 1f).apply {
             duration = DISMISS_DURATION_MS
             addUpdateListener {
                 val fraction = it.animatedValue as Float
-                dragOffsetX = startOffset * (1f + fraction)
+                dragOffsetX = startOffsetX * (1f + fraction)
+                dragOffsetY = startOffsetY * (1f + fraction)
                 bodyPaint.alpha = (FULL_ALPHA * (1f - fraction)).toInt()
                 invalidate()
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     dragOffsetX = 0f
+                    dragOffsetY = 0f
                     bodyPaint.alpha = FULL_ALPHA
                     dismissal?.invoke()
                 }
@@ -163,24 +178,11 @@ class StarDismissView @JvmOverloads constructor(
         val starRadius = minOf(centerX, centerY) / (1f + INNER_RADIUS_RATIO)
 
         val wobblePhase = (animatorPhase * Math.PI * 2).toFloat()
-        val rotation = Math.sin(animatorPhase * Math.PI).toFloat() * MAX_ROTATION_DEGREES
-        val glowCenterX = centerX + dragOffsetX
-        val glowCenterY = centerY + bobOffset
-
-        glowPaint.shader = RadialGradient(
-            glowCenterX,
-            glowCenterY,
-            starRadius * GLOW_RADIUS_RATIO,
-            bodyPaint.color.adjustAlpha(GLOW_ALPHA),
-            Color.TRANSPARENT,
-            Shader.TileMode.CLAMP
-        )
 
         canvas.save()
-        canvas.translate(0f, bobOffset)
-        canvas.drawCircle(glowCenterX, centerY, starRadius * GLOW_RADIUS_RATIO, glowPaint)
-        canvas.rotate(rotation, glowCenterX, centerY)
-        buildStarPath(starPath, glowCenterX, centerY, starRadius, wobblePhase)
+        canvas.translate(dragOffsetX, bobOffset + dragOffsetY)
+        canvas.rotate(currentRotationDegrees(), centerX, centerY)
+        buildStarPath(starPath, centerX, centerY, starRadius, wobblePhase)
         canvas.drawPath(starPath, bodyPaint)
         canvas.restore()
     }
@@ -228,9 +230,11 @@ class StarDismissView @JvmOverloads constructor(
         }
     }
 
-    private fun normalizeX(dx: Float, dy: Float) = (dx / Math.hypot(dx.toDouble(), dy.toDouble())).toFloat()
+    private fun normalizeX(dx: Float, dy: Float) =
+        (dx / Math.hypot(dx.toDouble(), dy.toDouble())).toFloat()
 
-    private fun normalizeY(dx: Float, dy: Float) = (dy / Math.hypot(dx.toDouble(), dy.toDouble())).toFloat()
+    private fun normalizeY(dx: Float, dy: Float) =
+        (dy / Math.hypot(dx.toDouble(), dy.toDouble())).toFloat()
 
     fun setStarColor(color: Int) {
         bodyPaint.color = color
