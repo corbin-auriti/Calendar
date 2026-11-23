@@ -341,6 +341,13 @@
 
             </RelativeLayout>
 
+            <org.fossify.commons.views.MyTextView
+                android:id="@+id/settings_fullscreen_reminders_hint"
+                style="@style/SettingsTextValueStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/fullscreen_reminders_hint" />
+
             <RelativeLayout
                 android:id="@+id/settings_reminder_preview_holder"
                 style="@style/SettingsHolderTextViewStyle"

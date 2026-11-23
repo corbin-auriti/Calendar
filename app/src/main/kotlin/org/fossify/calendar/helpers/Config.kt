@@ -195,7 +195,7 @@ class Config(context: Context) : BaseConfig(context) {
         set(loopReminders) = prefs.edit().putBoolean(LOOP_REMINDERS, loopReminders).apply()
 
     var fullscreenReminders: Boolean
-        get() = prefs.getBoolean(FULLSCREEN_REMINDERS, true)
+        get() = prefs.getBoolean(FULLSCREEN_REMINDERS, false)
         set(fullscreenReminders) = prefs.edit().putBoolean(FULLSCREEN_REMINDERS, fullscreenReminders).apply()
 
     var dimPastEvents: Boolean

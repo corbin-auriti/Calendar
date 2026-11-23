@@ -27,16 +27,21 @@ import java.time.LocalDate
 
 class ReminderActivity : AppCompatActivity() {
     companion object {
-        private const val DEFAULT_SNOOZE_MINUTES = 5
-        private const val SNOOZE_STEP_MINUTES = 5
-        private const val MIN_SNOOZE_MINUTES = 5
-        private const val MAX_SNOOZE_MINUTES = 120
+        private val SNOOZE_STEP_MINUTES = listOf(
+            5, 10, 15, 30, 45, 60, 90, 120, 180, 240, 300,
+            480, 600, 720, 1080, 1200, 1440, 2160, 2880, 4320
+        )
+        private const val STEPPER_DISABLED_ALPHA = 0.3f
+        private const val STEPPER_ENABLED_ALPHA = 1f
+        private const val MINUTES_PER_HOUR = 60
         private const val TEST_REMINDER = "test_reminder"
         private const val BACKGROUND_ACCENT_RATIO = 0.88f
         private const val TERTIARY_TEXT_ALPHA = 0.8f
         private const val DARKEN_RATIO = 0.22f
         private const val RANGE_TINT_RATIO = 0.12f
         private const val MID_LUMINANCE = 0.5f
+        private const val SECONDS_PER_MINUTE = 60L
+        private const val MILLISECONDS_PER_SECOND = 1000
         private const val HTSL_COMPONENTS = 3
         private const val SATURATION_INDEX = 1
 
@@ -49,7 +54,8 @@ class ReminderActivity : AppCompatActivity() {
     }
 
     private lateinit var binding: ActivityReminderBinding
-    private var snoozeMinutes = DEFAULT_SNOOZE_MINUTES
+    private var snoozeMinutes = SNOOZE_STEP_MINUTES.first()
+    private var snoozeSteps = SNOOZE_STEP_MINUTES
     private var eventId = 0L
     private var isTestReminder = false
 
@@ -75,10 +81,10 @@ class ReminderActivity : AppCompatActivity() {
         isTestReminder = intent.getBooleanExtra(TEST_REMINDER, false)
 
         binding.reminderSnoozeMinus.setOnClickListener {
-            adjustSnooze(-SNOOZE_STEP_MINUTES)
+            stepDown()
         }
         binding.reminderSnoozePlus.setOnClickListener {
-            adjustSnooze(SNOOZE_STEP_MINUTES)
+            stepUp()
         }
         binding.reminderSnooze.setOnClickListener {
             snoozeReminder()
@@ -99,14 +105,22 @@ class ReminderActivity : AppCompatActivity() {
                         return@runOnUiThread
                     }
                     setupEventContent(event)
+                    buildSnoozeSteps(minutesUntilEvent(event))
                 }
             }
         }
     }
 
     private fun applyDynamicColors() {
-        DynamicColors.applyToActivityIfAvailable(this)
-        val accent = pickDynamicAccent()
+        val usingSystemTheme = config.isSystemThemeEnabled
+        if (usingSystemTheme) {
+            DynamicColors.applyToActivityIfAvailable(this)
+        }
+        val accent = if (usingSystemTheme) {
+            pickDynamicAccent()
+        } else {
+            config.accentColor
+        }
         binding.reminderStar.setStarColor(accent)
         binding.reminderDismissHint.setTextColor(accent)
 
@@ -173,23 +187,61 @@ class ReminderActivity : AppCompatActivity() {
         }
     }
 
+    private fun minutesUntilEvent(event: Event): Int {
+        val nowSeconds = System.currentTimeMillis() / MILLISECONDS_PER_SECOND
+        return ((event.startTS - nowSeconds) / SECONDS_PER_MINUTE).toInt().coerceAtLeast(0)
+    }
+
+    private fun buildSnoozeSteps(minutesToEvent: Int) {
+        snoozeSteps = SNOOZE_STEP_MINUTES.filter { it < minutesToEvent }
+        if (snoozeSteps.isEmpty()) {
+            snoozeSteps = listOf(SNOOZE_STEP_MINUTES.first())
+        }
+        snoozeMinutes = snoozeSteps.first()
+        updateSnoozeLabel()
+    }
+
+    private fun stepDown() {
+        val index = snoozeSteps.indexOf(snoozeMinutes)
+        if (index > 0) {
+            snoozeMinutes = snoozeSteps[index - 1]
+            updateSnoozeLabel()
+        }
+    }
+
+    private fun stepUp() {
+        val index = snoozeSteps.indexOf(snoozeMinutes)
+        if (index in 0 until snoozeSteps.lastIndex) {
+            snoozeMinutes = snoozeSteps[index + 1]
+            updateSnoozeLabel()
+        }
+    }
+
     private fun setupTestContent() {
+        snoozeSteps = SNOOZE_STEP_MINUTES
+        snoozeMinutes = snoozeSteps.first()
         binding.reminderTitle.text = getString(R.string.test_fullscreen_reminder_title)
         binding.reminderTime.text = getString(R.string.test_fullscreen_reminder_time)
         binding.reminderDescription.text = getString(R.string.test_fullscreen_reminder_description)
         binding.reminderDescription.visibility = View.VISIBLE
     }
 
-    private fun adjustSnooze(deltaMinutes: Int) {
-        val newMinutes = (snoozeMinutes + deltaMinutes).coerceIn(MIN_SNOOZE_MINUTES, MAX_SNOOZE_MINUTES)
-        if (newMinutes != snoozeMinutes) {
-            snoozeMinutes = newMinutes
-            updateSnoozeLabel()
-        }
-    }
-
     private fun updateSnoozeLabel() {
-        binding.reminderSnooze.text = getString(R.string.snooze_minutes, snoozeMinutes)
+        if (snoozeMinutes >= MINUTES_PER_HOUR && snoozeMinutes % MINUTES_PER_HOUR == 0) {
+            binding.reminderSnooze.text = getString(R.string.snooze_hours, snoozeMinutes / MINUTES_PER_HOUR)
+        } else {
+            binding.reminderSnooze.text = getString(R.string.snooze_minutes, snoozeMinutes)
+        }
+
+        val index = snoozeSteps.indexOf(snoozeMinutes)
+        val canStepDown = index > 0
+        binding.reminderSnoozeMinus.isEnabled = canStepDown
+        binding.reminderSnoozeMinus.alpha =
+            if (canStepDown) STEPPER_ENABLED_ALPHA else STEPPER_DISABLED_ALPHA
+        val canStepUp = index in 0 until snoozeSteps.lastIndex
+        binding.reminderSnoozePlus.isEnabled = canStepUp
+        binding.reminderSnoozePlus.alpha =
+            if (canStepUp) STEPPER_ENABLED_ALPHA else STEPPER_DISABLED_ALPHA
     }
 
     private fun snoozeReminder() {
