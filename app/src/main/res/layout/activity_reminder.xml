@@ -68,19 +68,18 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <Button
+        <org.fossify.commons.views.MyTextView
             android:id="@+id/reminder_snooze_minus"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:background="@drawable/reminder_round_button"
             android:contentDescription="@string/snooze"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
+            android:gravity="center"
             android:text="@string/snooze_minus"
             android:textColor="#FFFFFFFF"
-            android:textSize="22sp" />
+            android:textSize="24sp" />
 
-        <Button
+        <org.fossify.commons.views.MyTextView
             android:id="@+id/reminder_snooze"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
@@ -94,17 +93,16 @@
             android:textColor="#FFFFFFFF"
             android:textSize="16sp" />
 
-        <Button
+        <org.fossify.commons.views.MyTextView
             android:id="@+id/reminder_snooze_plus"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:background="@drawable/reminder_round_button"
             android:contentDescription="@string/snooze"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
+            android:gravity="center"
             android:text="@string/snooze_plus"
             android:textColor="#FFFFFFFF"
-            android:textSize="22sp" />
+            android:textSize="24sp" />
 
     </LinearLayout>
 
@@ -116,7 +114,8 @@
     <org.fossify.calendar.views.StarDismissView
         android:id="@+id/reminder_star"
         android:layout_width="match_parent"
-        android:layout_height="140dp" />
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
     <org.fossify.commons.views.MyTextView
         android:id="@+id/reminder_dismiss_hint"

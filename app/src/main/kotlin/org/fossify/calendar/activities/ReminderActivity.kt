@@ -30,8 +30,8 @@ class ReminderActivity : AppCompatActivity() {
         private const val MIN_SNOOZE_MINUTES = 5
         private const val MAX_SNOOZE_MINUTES = 120
         private const val TEST_REMINDER = "test_reminder"
-        private const val BASE_STAR_COLOR = 0xFFFFD54A.toInt()
         private const val DARKEN_RATIO = 0.22f
+        private const val RANGE_TINT_RATIO = 0.12f
 
         fun launchTest(context: Context) {
             context.startActivity(
@@ -99,17 +99,19 @@ class ReminderActivity : AppCompatActivity() {
 
     private fun applyDynamicColors() {
         DynamicColors.applyToActivityIfAvailable(this)
-        val starColor = MaterialColors.harmonizeWithPrimary(this, BASE_STAR_COLOR)
-        binding.reminderStar.setStarColor(starColor)
-        binding.reminderDismissHint.setTextColor(starColor)
-
         val primary = MaterialColors.getColor(binding.root, android.R.attr.colorPrimary)
+        binding.reminderStar.setStarColor(primary)
+        binding.reminderDismissHint.setTextColor(primary)
+
         val backgroundColor = ColorUtils.blendARGB(Color.BLACK, primary, DARKEN_RATIO)
         val background = GradientDrawable(
             GradientDrawable.Orientation.TOP_BOTTOM,
             intArrayOf(ColorUtils.blendARGB(backgroundColor, Color.BLACK, DARKEN_RATIO), backgroundColor)
         )
         binding.root.background = background
+        binding.reminderStar.setRangeCircleColor(
+            ColorUtils.blendARGB(backgroundColor, primary, RANGE_TINT_RATIO)
+        )
     }
 
     private fun setupEventContent(event: Event) {
