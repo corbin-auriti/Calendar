@@ -204,7 +204,10 @@
     <string name="show_a_grid">Show a grid</string>
     <string name="loop_reminders">Loop reminders until dismissed</string>
     <string name="fullscreen_reminders">Use full-screen reminders</string>
-    <string name="dismiss">Dismiss</string>
+    <string name="snooze_minutes">Snooze %d min</string>
+    <string name="snooze_minus">\u2013</string>
+    <string name="snooze_plus">+</string>
+    <string name="drag_star_to_dismiss">Drag the star to dismiss</string>
     <string name="dim_past_events">Dim past events</string>
     <string name="dim_completed_tasks">Dim completed tasks</string>
     <string name="events">Events</string>

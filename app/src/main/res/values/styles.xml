@@ -30,6 +30,14 @@
         <item name="android:background">?android:attr/selectableItemBackground</item>
     </style>
 
+    <style name="ReminderTheme" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">@drawable/reminder_background</item>
+        <item name="colorPrimary">#FFD54A</item>
+        <item name="colorOnPrimary">#FF1B1B1B</item>
+        <item name="colorSecondaryContainer">#33FFFFFF</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
     <style name="DatePickerLightStyle">
         <item name="android:textColorPrimary">@color/theme_light_text_color</item>
     </style>

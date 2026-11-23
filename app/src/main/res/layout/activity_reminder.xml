@@ -1,50 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/reminder_background"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="@dimen/big_margin">
 
-    <LinearLayout
+    <org.fossify.commons.views.MyTextView
+        android:id="@+id/reminder_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:orientation="vertical"
-        android:padding="@dimen/big_margin">
+        android:layout_marginTop="@dimen/big_margin"
+        android:gravity="center"
+        android:textColor="#FFFFFFFF"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        tools:text="Event title" />
 
-        <org.fossify.commons.views.MyTextView
-            android:id="@+id/reminder_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:paddingBottom="@dimen/activity_margin"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            tools:text="Event title" />
+    <org.fossify.commons.views.MyTextView
+        android:id="@+id/reminder_time"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/small_margin"
+        android:gravity="center"
+        android:textColor="#B3FFFFFF"
+        android:textSize="16sp"
+        tools:text="Tomorrow, 10:00 \u2013 11:00" />
 
-        <org.fossify.commons.views.MyTextView
-            android:id="@+id/reminder_time"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:paddingBottom="@dimen/bigger_margin"
-            android:textSize="18sp"
-            tools:text="Tomorrow, 10:00 – 11:00" />
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/reminder_snooze_minus"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/reminder_round_button"
+            android:contentDescription="@string/snooze"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:text="@string/snooze_minus"
+            android:textColor="#FFFFFFFF"
+            android:textSize="22sp" />
 
         <Button
             android:id="@+id/reminder_snooze"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/medium_margin"
-            android:text="@string/snooze" />
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginStart="@dimen/medium_margin"
+            android:layout_marginEnd="@dimen/medium_margin"
+            android:background="@drawable/reminder_snooze_pill"
+            android:minWidth="160dp"
+            android:paddingStart="@dimen/bigger_margin"
+            android:paddingEnd="@dimen/bigger_margin"
+            android:text="@string/snooze"
+            android:textColor="#FFFFFFFF"
+            android:textSize="16sp" />
 
         <Button
-            android:id="@+id/reminder_dismiss"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/dismiss" />
+            android:id="@+id/reminder_snooze_plus"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/reminder_round_button"
+            android:contentDescription="@string/snooze"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:text="@string/snooze_plus"
+            android:textColor="#FFFFFFFF"
+            android:textSize="22sp" />
 
     </LinearLayout>
 
-</RelativeLayout>
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <org.fossify.calendar.views.StarDismissView
+        android:id="@+id/reminder_star"
+        android:layout_width="match_parent"
+        android:layout_height="140dp" />
+
+    <org.fossify.commons.views.MyTextView
+        android:id="@+id/reminder_dismiss_hint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/activity_margin"
+        android:text="@string/drag_star_to_dismiss"
+        android:textColor="#80FFFFFF"
+        android:textSize="14sp" />
+
+</LinearLayout>
