@@ -99,11 +99,11 @@ class ReminderActivity : AppCompatActivity() {
 
     private fun applyDynamicColors() {
         DynamicColors.applyToActivityIfAvailable(this)
-        val starColor = MaterialColors.harmonizeWithPrimary(binding.root, BASE_STAR_COLOR)
+        val starColor = MaterialColors.harmonizeWithPrimary(this, BASE_STAR_COLOR)
         binding.reminderStar.setStarColor(starColor)
         binding.reminderDismissHint.setTextColor(starColor)
 
-        val primary = MaterialColors.getColor(this, android.R.attr.colorPrimary)
+        val primary = MaterialColors.getColor(binding.root, android.R.attr.colorPrimary)
         val backgroundColor = ColorUtils.blendARGB(Color.BLACK, primary, DARKEN_RATIO)
         val background = GradientDrawable(
             GradientDrawable.Orientation.TOP_BOTTOM,
