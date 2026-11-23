@@ -26,16 +26,17 @@ class StarDismissView @JvmOverloads constructor(
         private const val DEFAULT_RANGE_COLOR = 0x22FFFFFF
         private const val INNER_RADIUS_RATIO = 0.5f
         private const val CORNER_CUT_RATIO = 0.55f
-        private const val RANGE_RADIUS_RATIO = 0.8f
-        private const val STAR_RADIUS_RATIO = 0.34f
+        private const val MAX_CORNER_CUT_EDGE_RATIO = 0.48f
+        private const val RANGE_RADIUS_RATIO = 0.95f
+        private const val STAR_RADIUS_RATIO = 0.55f
         private const val BOB_AMPLITUDE_RATIO = 0.05f
         private const val MORPH_AMPLITUDE = 0.09f
         private const val PHASE_STEP_PER_VERTEX = 0.7f
         private const val CYCLE_DURATION_MS = 1300L
         private const val DEGREES_PER_CYCLE = 72f
         private const val DRAG_SCALE = 0.85f
-        private const val VISUAL_CLAMP_RATIO = 0.9f
-        private const val DISMISS_RATIO = 0.68f
+        private const val VISUAL_CLAMP_RATIO = 0.42f
+        private const val DISMISS_RATIO = 0.5f
         private const val SPRING_DECAY_PER_FRAME = 0.82f
         private const val SPRING_DURATION_MS = 260L
         private const val DISMISS_DURATION_MS = 200L
@@ -225,10 +226,23 @@ class StarDismissView @JvmOverloads constructor(
             val nextX = vertexCoordinates[(i + 1) % VERTEX_COUNT * 2]
             val nextY = vertexCoordinates[((i + 1) % VERTEX_COUNT * 2) + 1]
 
-            val towardsBeforeX = currentX - normalizeX(currentX - previousX, currentY - previousY) * cornerCut
-            val towardsBeforeY = currentY - normalizeY(currentX - previousX, currentY - previousY) * cornerCut
-            val towardsAfterX = currentX + normalizeX(nextX - currentX, nextY - currentY) * cornerCut
-            val towardsAfterY = currentY + normalizeY(nextX - currentX, nextY - currentY) * cornerCut
+            val edgeBefore = Math.hypot(
+                (currentX - previousX).toDouble(),
+                (currentY - previousY).toDouble()
+            ).toFloat()
+            val edgeAfter = Math.hypot(
+                (nextX - currentX).toDouble(),
+                (nextY - currentY).toDouble()
+            ).toFloat()
+            val limitedCornerCut = minOf(
+                cornerCut,
+                edgeBefore * MAX_CORNER_CUT_EDGE_RATIO,
+                edgeAfter * MAX_CORNER_CUT_EDGE_RATIO
+            )
+            val towardsBeforeX = currentX - normalizeX(currentX - previousX, currentY - previousY) * limitedCornerCut
+            val towardsBeforeY = currentY - normalizeY(currentX - previousX, currentY - previousY) * limitedCornerCut
+            val towardsAfterX = currentX + normalizeX(nextX - currentX, nextY - currentY) * limitedCornerCut
+            val towardsAfterY = currentY + normalizeY(nextX - currentX, nextY - currentY) * limitedCornerCut
 
             if (i == 0) {
                 path.moveTo(towardsBeforeX, towardsBeforeY)

@@ -15,11 +15,13 @@ import com.google.android.material.color.MaterialColors
 import org.fossify.calendar.R
 import org.fossify.calendar.databinding.ActivityReminderBinding
 import org.fossify.calendar.extensions.cancelNotification
+import org.fossify.calendar.extensions.config
 import org.fossify.calendar.extensions.eventsDB
 import org.fossify.calendar.extensions.rescheduleReminder
 import org.fossify.calendar.helpers.EVENT_ID
 import org.fossify.calendar.helpers.Formatter
 import org.fossify.calendar.models.Event
+import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.helpers.ensureBackgroundThread
 import java.time.LocalDate
 
@@ -30,8 +32,13 @@ class ReminderActivity : AppCompatActivity() {
         private const val MIN_SNOOZE_MINUTES = 5
         private const val MAX_SNOOZE_MINUTES = 120
         private const val TEST_REMINDER = "test_reminder"
+        private const val BACKGROUND_ACCENT_RATIO = 0.88f
+        private const val TERTIARY_TEXT_ALPHA = 0.8f
         private const val DARKEN_RATIO = 0.22f
         private const val RANGE_TINT_RATIO = 0.12f
+        private const val MID_LUMINANCE = 0.5f
+        private const val HTSL_COMPONENTS = 3
+        private const val SATURATION_INDEX = 1
 
         fun launchTest(context: Context) {
             context.startActivity(
@@ -99,19 +106,41 @@ class ReminderActivity : AppCompatActivity() {
 
     private fun applyDynamicColors() {
         DynamicColors.applyToActivityIfAvailable(this)
-        val primary = MaterialColors.getColor(binding.root, android.R.attr.colorPrimary)
-        binding.reminderStar.setStarColor(primary)
-        binding.reminderDismissHint.setTextColor(primary)
+        val accent = pickDynamicAccent()
+        binding.reminderStar.setStarColor(accent)
+        binding.reminderDismissHint.setTextColor(accent)
 
-        val backgroundColor = ColorUtils.blendARGB(Color.BLACK, primary, DARKEN_RATIO)
+        val backgroundColor = ColorUtils.blendARGB(accent, config.backgroundColor, BACKGROUND_ACCENT_RATIO)
         val background = GradientDrawable(
             GradientDrawable.Orientation.TOP_BOTTOM,
             intArrayOf(ColorUtils.blendARGB(backgroundColor, Color.BLACK, DARKEN_RATIO), backgroundColor)
         )
         binding.root.background = background
+        window.statusBarColor = backgroundColor
+        window.navigationBarColor = backgroundColor
+
+        val textColor = config.textColor
+        binding.reminderTitle.setTextColor(textColor)
+        binding.reminderTime.setTextColor(textColor.adjustAlpha(TERTIARY_TEXT_ALPHA))
+        binding.reminderLocation.setTextColor(textColor.adjustAlpha(TERTIARY_TEXT_ALPHA))
+        binding.reminderDescription.setTextColor(textColor.adjustAlpha(TERTIARY_TEXT_ALPHA))
         binding.reminderStar.setRangeCircleColor(
-            ColorUtils.blendARGB(backgroundColor, primary, RANGE_TINT_RATIO)
+            ColorUtils.blendARGB(backgroundColor, accent, RANGE_TINT_RATIO)
         )
+    }
+
+    private fun pickDynamicAccent(): Int {
+        val primary = MaterialColors.getColor(binding.root, android.R.attr.colorPrimary)
+        val primaryContainer =
+            MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorPrimaryContainer)
+        return if (accentScore(primaryContainer) > accentScore(primary)) primaryContainer else primary
+    }
+
+    private fun accentScore(color: Int): Float {
+        val hsl = FloatArray(HTSL_COMPONENTS)
+        ColorUtils.colorToHSL(color, hsl)
+        val luminance = ColorUtils.calculateLuminance(color).toFloat()
+        return hsl[SATURATION_INDEX] * (1f - Math.abs(luminance - MID_LUMINANCE))
     }
 
     private fun setupEventContent(event: Event) {
