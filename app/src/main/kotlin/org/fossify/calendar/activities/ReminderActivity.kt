@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.MaterialColors
@@ -27,13 +28,14 @@ import java.time.LocalDate
 
 class ReminderActivity : AppCompatActivity() {
     companion object {
-        private val SNOOZE_STEP_MINUTES = listOf(
-            5, 10, 15, 30, 45, 60, 90, 120, 180, 240, 300,
-            480, 600, 720, 1080, 1200, 1440, 2160, 2880, 4320
-        )
+        private val SNOOZE_MINUTE_STEPS = listOf(1, 2, 3, 5, 10, 15, 30, 45)
+        private val SNOOZE_HOUR_STEPS = listOf(1, 2, 3, 4, 6, 8, 10, 12, 18, 20, 24, 36, 48)
+        private val SNOOZE_DAY_STEPS = listOf(3, 4, 5, 7, 10, 14, 21, 30, 45, 60, 90, 180, 365, 730)
+        private const val MINUTES_PER_HOUR = 60
+        private const val MINUTES_PER_DAY = 1440
+        private const val TEST_MINUTES_TO_EVENT = 4320
         private const val STEPPER_DISABLED_ALPHA = 0.3f
         private const val STEPPER_ENABLED_ALPHA = 1f
-        private const val MINUTES_PER_HOUR = 60
         private const val TEST_REMINDER = "test_reminder"
         private const val BACKGROUND_ACCENT_RATIO = 0.88f
         private const val TERTIARY_TEXT_ALPHA = 0.8f
@@ -54,8 +56,8 @@ class ReminderActivity : AppCompatActivity() {
     }
 
     private lateinit var binding: ActivityReminderBinding
-    private var snoozeMinutes = SNOOZE_STEP_MINUTES.first()
-    private var snoozeSteps = SNOOZE_STEP_MINUTES
+    private var snoozeMinutes = 1
+    private var snoozeSteps = generateSnoozeSteps(Int.MAX_VALUE)
     private var eventId = 0L
     private var isTestReminder = false
 
@@ -112,7 +114,7 @@ class ReminderActivity : AppCompatActivity() {
     }
 
     private fun applyDynamicColors() {
-        val usingSystemTheme = config.isSystemThemeEnabled
+        val usingSystemTheme = isSystemThemeActive()
         if (usingSystemTheme) {
             DynamicColors.applyToActivityIfAvailable(this)
         }
@@ -141,6 +143,17 @@ class ReminderActivity : AppCompatActivity() {
         binding.reminderStar.setRangeCircleColor(
             ColorUtils.blendARGB(backgroundColor, accent, RANGE_TINT_RATIO)
         )
+    }
+
+    private fun isSystemThemeActive(): Boolean {
+        if (!config.isSystemThemeEnabled) {
+            return false
+        }
+        return config.textColor == ContextCompat.getColor(this, org.fossify.commons.R.color.default_text_color) &&
+            config.backgroundColor ==
+            ContextCompat.getColor(this, org.fossify.commons.R.color.default_background_color) &&
+            config.primaryColor == ContextCompat.getColor(this, org.fossify.commons.R.color.default_primary_color) &&
+            config.accentColor == ContextCompat.getColor(this, org.fossify.commons.R.color.default_accent_color)
     }
 
     private fun pickDynamicAccent(): Int {
@@ -192,12 +205,29 @@ class ReminderActivity : AppCompatActivity() {
         return ((event.startTS - nowSeconds) / SECONDS_PER_MINUTE).toInt().coerceAtLeast(0)
     }
 
-    private fun buildSnoozeSteps(minutesToEvent: Int) {
-        snoozeSteps = SNOOZE_STEP_MINUTES.filter { it < minutesToEvent }
-        if (snoozeSteps.isEmpty()) {
-            snoozeSteps = listOf(SNOOZE_STEP_MINUTES.first())
+    private fun generateSnoozeSteps(maxMinutes: Int): List<Int> {
+        val steps = sortedSetOf(1)
+        SNOOZE_MINUTE_STEPS.forEach { if (it < maxMinutes) steps.add(it) }
+        SNOOZE_HOUR_STEPS.forEach {
+            val minutes = it * MINUTES_PER_HOUR
+            if (minutes < maxMinutes) steps.add(minutes)
         }
-        snoozeMinutes = snoozeSteps.first()
+        SNOOZE_DAY_STEPS.forEach {
+            val minutes = it * MINUTES_PER_DAY
+            if (minutes < maxMinutes) steps.add(minutes)
+        }
+        return steps.toList()
+    }
+
+    private fun buildSnoozeSteps(minutesToEvent: Int) {
+        snoozeSteps = generateSnoozeSteps(minutesToEvent)
+        val desiredSnooze = config.snoozeTime.coerceAtLeast(1)
+        val index = snoozeSteps.indexOfFirst { it >= desiredSnooze }
+        snoozeMinutes = if (index == -1) {
+            snoozeSteps.last()
+        } else {
+            snoozeSteps[index]
+        }
         updateSnoozeLabel()
     }
 
@@ -218,12 +248,13 @@ class ReminderActivity : AppCompatActivity() {
     }
 
     private fun setupTestContent() {
-        snoozeSteps = SNOOZE_STEP_MINUTES
-        snoozeMinutes = snoozeSteps.first()
         binding.reminderTitle.text = getString(R.string.test_fullscreen_reminder_title)
         binding.reminderTime.text = getString(R.string.test_fullscreen_reminder_time)
+        binding.reminderLocation.text = getString(R.string.test_fullscreen_reminder_location)
+        binding.reminderLocation.visibility = View.VISIBLE
         binding.reminderDescription.text = getString(R.string.test_fullscreen_reminder_description)
         binding.reminderDescription.visibility = View.VISIBLE
+        buildSnoozeSteps(TEST_MINUTES_TO_EVENT)
     }
 
     private fun updateSnoozeLabel() {

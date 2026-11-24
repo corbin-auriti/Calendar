@@ -339,14 +339,15 @@
                     android:layout_height="wrap_content"
                     android:text="@string/fullscreen_reminders" />
 
-            </RelativeLayout>
+                <org.fossify.commons.views.MyTextView
+                    android:id="@+id/settings_fullscreen_reminders_hint"
+                    style="@style/SettingsTextValueStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/settings_fullscreen_reminders"
+                    android:text="@string/fullscreen_reminders_hint" />
 
-            <org.fossify.commons.views.MyTextView
-                android:id="@+id/settings_fullscreen_reminders_hint"
-                style="@style/SettingsTextValueStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/fullscreen_reminders_hint" />
+            </RelativeLayout>
 
             <RelativeLayout
                 android:id="@+id/settings_reminder_preview_holder"

@@ -48,7 +48,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/small_margin"
+        android:ellipsize="end"
         android:gravity="center"
+        android:maxLines="6"
         android:paddingStart="@dimen/bigger_margin"
         android:paddingEnd="@dimen/bigger_margin"
         android:textColor="#B3FFFFFF"
@@ -60,6 +62,7 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/bigger_margin"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 

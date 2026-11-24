@@ -28,15 +28,16 @@ class StarDismissView @JvmOverloads constructor(
         private const val CORNER_CUT_RATIO = 0.72f
         private const val MAX_CORNER_CUT_EDGE_RATIO = 0.48f
         private const val RANGE_RADIUS_RATIO = 1f
+        private const val RANGE_MAX_HEIGHT_RATIO = 0.44f
+        private const val RANGE_BOTTOM_MARGIN_DP = 8
         private const val STAR_RADIUS_RATIO = 0.3f
         private const val BOB_AMPLITUDE_RATIO = 0.035f
         private const val MORPH_AMPLITUDE = 0.11f
         private const val PHASE_STEP_PER_VERTEX = 0.7f
         private const val CYCLE_DURATION_MS = 1300L
         private const val DEGREES_PER_CYCLE = 72f
-        private const val DRAG_SCALE = 0.85f
-        private const val VISUAL_CLAMP_RATIO = 0.52f
-        private const val DISMISS_RATIO = 0.58f
+        private const val DRAG_SCALE = 0.55f
+        private const val DISMISS_RATIO = 0.72f
         private const val SPRING_DECAY_PER_FRAME = 0.82f
         private const val SPRING_DURATION_MS = 260L
         private const val DISMISS_DURATION_MS = 200L
@@ -96,9 +97,10 @@ class StarDismissView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
+        val bottomMargin = RANGE_BOTTOM_MARGIN_DP * resources.displayMetrics.density
+        rangeRadius = minOf(w / 2f, h * RANGE_MAX_HEIGHT_RATIO) * RANGE_RADIUS_RATIO
         centerX = w / 2f
-        centerY = h / 2f
-        rangeRadius = minOf(centerX, centerY) * RANGE_RADIUS_RATIO
+        centerY = h - rangeRadius - bottomMargin
         starRadius = rangeRadius * STAR_RADIUS_RATIO
         maxDragDistance = rangeRadius * DISMISS_RATIO
     }
@@ -203,12 +205,11 @@ class StarDismissView @JvmOverloads constructor(
     }
 
     private fun clampedDrag(): Pair<Float, Float> {
-        val maxOffset = rangeRadius * VISUAL_CLAMP_RATIO
         val distance = currentDragDistance()
-        if (distance <= maxOffset || distance == 0f) {
+        if (distance <= maxDragDistance || distance == 0f) {
             return Pair(dragOffsetX, dragOffsetY)
         }
-        val scale = maxOffset / distance
+        val scale = maxDragDistance / distance
         return Pair(dragOffsetX * scale, dragOffsetY * scale)
     }
 
