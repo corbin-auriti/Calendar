@@ -10,6 +10,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.util.AttributeSet
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.LinearInterpolator
@@ -38,6 +39,7 @@ class StarDismissView @JvmOverloads constructor(
         private const val DEGREES_PER_CYCLE = 72f
         private const val DRAG_SCALE = 0.55f
         private const val DISMISS_RATIO = 0.72f
+        private const val EDGE_FEEDBACK_RATIO = 0.82f
         private const val SPRING_DECAY_PER_FRAME = 0.82f
         private const val SPRING_DURATION_MS = 260L
         private const val DISMISS_DURATION_MS = 200L
@@ -70,6 +72,7 @@ class StarDismissView @JvmOverloads constructor(
     private var starRadius = 0f
     private var maxDragDistance = 0f
     private var startedAtMs = 0L
+    private var edgeFeedbackGiven = false
 
     private val idleAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
         duration = CYCLE_DURATION_MS
@@ -116,6 +119,7 @@ class StarDismissView @JvmOverloads constructor(
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 isDragging = true
+                edgeFeedbackGiven = false
                 lastTouchX = event.x
                 lastTouchY = event.y
                 parent?.requestDisallowInterceptTouchEvent(true)
@@ -126,7 +130,12 @@ class StarDismissView @JvmOverloads constructor(
                 dragOffsetY += (event.y - lastTouchY) * DRAG_SCALE
                 lastTouchX = event.x
                 lastTouchY = event.y
-                if (currentDragDistance() > maxDragDistance) {
+                val dragDistance = currentDragDistance()
+                if (dragDistance > maxDragDistance * EDGE_FEEDBACK_RATIO && !edgeFeedbackGiven) {
+                    edgeFeedbackGiven = true
+                    performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                }
+                if (dragDistance > maxDragDistance) {
                     isDragging = false
                     animateDismissal()
                 } else {

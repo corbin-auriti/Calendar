@@ -23,17 +23,22 @@ import org.fossify.calendar.helpers.EVENT_ID
 import org.fossify.calendar.helpers.Formatter
 import org.fossify.calendar.models.Event
 import org.fossify.commons.extensions.adjustAlpha
+import org.fossify.commons.extensions.getProperBackgroundColor
+import org.fossify.commons.extensions.getProperPrimaryColor
+import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.commons.helpers.ensureBackgroundThread
 import java.time.LocalDate
 
 class ReminderActivity : AppCompatActivity() {
     companion object {
-        private val SNOOZE_MINUTE_STEPS = listOf(1, 2, 3, 5, 10, 15, 30, 45)
-        private val SNOOZE_HOUR_STEPS = listOf(1, 2, 3, 4, 6, 8, 10, 12, 18, 20, 24, 36, 48)
-        private val SNOOZE_DAY_STEPS = listOf(3, 4, 5, 7, 10, 14, 21, 30, 45, 60, 90, 180, 365, 730)
+        private val MINUTE_MARKERS = intArrayOf(1, 5, 10, 15, 30)
+        private val HOUR_MARKERS = intArrayOf(1, 2, 3, 4, 5, 6, 8, 10, 12, 18, 24, 36, 48)
+        private val DAY_MARKERS = intArrayOf(1, 2, 3, 4, 5, 7, 10, 14, 21, 30, 45, 60, 90, 180, 365, 730)
+        private const val MARKER_GROWTH = 1.35
         private const val MINUTES_PER_HOUR = 60
         private const val MINUTES_PER_DAY = 1440
         private const val TEST_MINUTES_TO_EVENT = 4320
+        private const val MIN_SNOOZE_MARKER = 1
         private const val STEPPER_DISABLED_ALPHA = 0.3f
         private const val STEPPER_ENABLED_ALPHA = 1f
         private const val TEST_REMINDER = "test_reminder"
@@ -56,8 +61,9 @@ class ReminderActivity : AppCompatActivity() {
     }
 
     private lateinit var binding: ActivityReminderBinding
-    private var snoozeMinutes = 1
-    private var snoozeSteps = generateSnoozeSteps(Int.MAX_VALUE)
+    private var snoozeMarker = MIN_SNOOZE_MARKER
+    private var snoozeMarkers = listOf(MIN_SNOOZE_MARKER)
+    private var minutesToEvent = 0
     private var eventId = 0L
     private var isTestReminder = false
 
@@ -121,12 +127,12 @@ class ReminderActivity : AppCompatActivity() {
         val accent = if (usingSystemTheme) {
             pickDynamicAccent()
         } else {
-            config.accentColor
+            getProperPrimaryColor()
         }
         binding.reminderStar.setStarColor(accent)
         binding.reminderDismissHint.setTextColor(accent)
 
-        val backgroundColor = ColorUtils.blendARGB(accent, config.backgroundColor, BACKGROUND_ACCENT_RATIO)
+        val backgroundColor = ColorUtils.blendARGB(accent, getProperBackgroundColor(), BACKGROUND_ACCENT_RATIO)
         val background = GradientDrawable(
             GradientDrawable.Orientation.TOP_BOTTOM,
             intArrayOf(ColorUtils.blendARGB(backgroundColor, Color.BLACK, DARKEN_RATIO), backgroundColor)
@@ -135,7 +141,7 @@ class ReminderActivity : AppCompatActivity() {
         window.statusBarColor = backgroundColor
         window.navigationBarColor = backgroundColor
 
-        val textColor = config.textColor
+        val textColor = getProperTextColor()
         binding.reminderTitle.setTextColor(textColor)
         binding.reminderTime.setTextColor(textColor.adjustAlpha(TERTIARY_TEXT_ALPHA))
         binding.reminderLocation.setTextColor(textColor.adjustAlpha(TERTIARY_TEXT_ALPHA))
@@ -157,10 +163,14 @@ class ReminderActivity : AppCompatActivity() {
     }
 
     private fun pickDynamicAccent(): Int {
-        val primary = MaterialColors.getColor(binding.root, android.R.attr.colorPrimary)
-        val primaryContainer =
-            MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorPrimaryContainer)
-        return if (accentScore(primaryContainer) > accentScore(primary)) primaryContainer else primary
+        return try {
+            val primary = MaterialColors.getColor(binding.root, android.R.attr.colorPrimary)
+            val primaryContainer =
+                MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorPrimaryContainer)
+            if (accentScore(primaryContainer) > accentScore(primary)) primaryContainer else primary
+        } catch (e: IllegalArgumentException) {
+            getProperPrimaryColor()
+        }
     }
 
     private fun accentScore(color: Int): Float {
@@ -205,44 +215,60 @@ class ReminderActivity : AppCompatActivity() {
         return ((event.startTS - nowSeconds) / SECONDS_PER_MINUTE).toInt().coerceAtLeast(0)
     }
 
-    private fun generateSnoozeSteps(maxMinutes: Int): List<Int> {
-        val steps = sortedSetOf(1)
-        SNOOZE_MINUTE_STEPS.forEach { if (it < maxMinutes) steps.add(it) }
-        SNOOZE_HOUR_STEPS.forEach {
+    private fun generateMarkers(maxMinutes: Int): List<Int> {
+        val markers = sortedSetOf(MIN_SNOOZE_MARKER)
+        MINUTE_MARKERS.forEach { if (it in MIN_SNOOZE_MARKER until maxMinutes) markers.add(it) }
+        HOUR_MARKERS.forEach {
             val minutes = it * MINUTES_PER_HOUR
-            if (minutes < maxMinutes) steps.add(minutes)
+            if (minutes in MIN_SNOOZE_MARKER until maxMinutes) markers.add(minutes)
         }
-        SNOOZE_DAY_STEPS.forEach {
+        DAY_MARKERS.forEach {
             val minutes = it * MINUTES_PER_DAY
-            if (minutes < maxMinutes) steps.add(minutes)
+            if (minutes in MIN_SNOOZE_MARKER until maxMinutes) markers.add(minutes)
         }
-        return steps.toList()
+
+        var value = MIN_SNOOZE_MARKER.toFloat()
+        while (value < maxMinutes) {
+            val rounded = roundToResolution(value)
+            if (rounded in MIN_SNOOZE_MARKER until maxMinutes) {
+                markers.add(rounded)
+            }
+            value *= MARKER_GROWTH
+        }
+        return markers.toList()
     }
 
-    private fun buildSnoozeSteps(minutesToEvent: Int) {
-        snoozeSteps = generateSnoozeSteps(minutesToEvent)
-        val desiredSnooze = config.snoozeTime.coerceAtLeast(1)
-        val index = snoozeSteps.indexOfFirst { it >= desiredSnooze }
-        snoozeMinutes = if (index == -1) {
-            snoozeSteps.last()
+    private fun roundToResolution(value: Float): Int {
+        val resolution = Math.pow(10.0, Math.floor(Math.log10(value.toDouble())).toDouble()).toFloat()
+        val step = Math.round(value / resolution)
+        return (step * resolution).toInt().coerceAtLeast(MIN_SNOOZE_MARKER)
+    }
+
+    private fun buildSnoozeSteps(minutesUntilEvent: Int) {
+        minutesToEvent = minutesUntilEvent
+        snoozeMarkers = generateMarkers(minutesUntilEvent)
+        val desiredMarker = (minutesUntilEvent - config.snoozeTime).coerceAtLeast(MIN_SNOOZE_MARKER)
+        val index = snoozeMarkers.indexOfFirst { it >= desiredMarker }
+        snoozeMarker = if (index == -1) {
+            snoozeMarkers.last()
         } else {
-            snoozeSteps[index]
+            snoozeMarkers[index]
         }
         updateSnoozeLabel()
     }
 
     private fun stepDown() {
-        val index = snoozeSteps.indexOf(snoozeMinutes)
+        val index = snoozeMarkers.indexOf(snoozeMarker)
         if (index > 0) {
-            snoozeMinutes = snoozeSteps[index - 1]
+            snoozeMarker = snoozeMarkers[index - 1]
             updateSnoozeLabel()
         }
     }
 
     private fun stepUp() {
-        val index = snoozeSteps.indexOf(snoozeMinutes)
-        if (index in 0 until snoozeSteps.lastIndex) {
-            snoozeMinutes = snoozeSteps[index + 1]
+        val index = snoozeMarkers.indexOf(snoozeMarker)
+        if (index in 0 until snoozeMarkers.lastIndex) {
+            snoozeMarker = snoozeMarkers[index + 1]
             updateSnoozeLabel()
         }
     }
@@ -258,18 +284,22 @@ class ReminderActivity : AppCompatActivity() {
     }
 
     private fun updateSnoozeLabel() {
-        if (snoozeMinutes >= MINUTES_PER_HOUR && snoozeMinutes % MINUTES_PER_HOUR == 0) {
-            binding.reminderSnooze.text = getString(R.string.snooze_hours, snoozeMinutes / MINUTES_PER_HOUR)
-        } else {
-            binding.reminderSnooze.text = getString(R.string.snooze_minutes, snoozeMinutes)
+        binding.reminderSnooze.text = when {
+            snoozeMarker >= MINUTES_PER_DAY && snoozeMarker % MINUTES_PER_DAY == 0 ->
+                getString(R.string.snooze_days_before, snoozeMarker / MINUTES_PER_DAY)
+
+            snoozeMarker >= MINUTES_PER_HOUR && snoozeMarker % MINUTES_PER_HOUR == 0 ->
+                getString(R.string.snooze_hours_before, snoozeMarker / MINUTES_PER_HOUR)
+
+            else -> getString(R.string.snooze_minutes_before, snoozeMarker)
         }
 
-        val index = snoozeSteps.indexOf(snoozeMinutes)
+        val index = snoozeMarkers.indexOf(snoozeMarker)
         val canStepDown = index > 0
         binding.reminderSnoozeMinus.isEnabled = canStepDown
         binding.reminderSnoozeMinus.alpha =
             if (canStepDown) STEPPER_ENABLED_ALPHA else STEPPER_DISABLED_ALPHA
-        val canStepUp = index in 0 until snoozeSteps.lastIndex
+        val canStepUp = index in 0 until snoozeMarkers.lastIndex
         binding.reminderSnoozePlus.isEnabled = canStepUp
         binding.reminderSnoozePlus.alpha =
             if (canStepUp) STEPPER_ENABLED_ALPHA else STEPPER_DISABLED_ALPHA
@@ -280,10 +310,11 @@ class ReminderActivity : AppCompatActivity() {
         if (isTestReminder) {
             return
         }
+        val snoozeDuration = (minutesToEvent - snoozeMarker).coerceAtLeast(1)
         ensureBackgroundThread {
             val event = eventsDB.getEventOrTaskWithId(eventId)
             if (event != null) {
-                rescheduleReminder(event, snoozeMinutes)
+                rescheduleReminder(event, snoozeDuration)
             }
         }
     }
