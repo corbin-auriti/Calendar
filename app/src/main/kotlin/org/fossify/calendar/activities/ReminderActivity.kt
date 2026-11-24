@@ -34,7 +34,7 @@ class ReminderActivity : AppCompatActivity() {
         private val MINUTE_MARKERS = intArrayOf(1, 5, 10, 15, 30)
         private val HOUR_MARKERS = intArrayOf(1, 2, 3, 4, 5, 6, 8, 10, 12, 18, 24, 36, 48)
         private val DAY_MARKERS = intArrayOf(1, 2, 3, 4, 5, 7, 10, 14, 21, 30, 45, 60, 90, 180, 365, 730)
-        private const val MARKER_GROWTH = 1.35
+        private const val MARKER_GROWTH = 1.35f
         private const val MINUTES_PER_HOUR = 60
         private const val MINUTES_PER_DAY = 1440
         private const val TEST_MINUTES_TO_EVENT = 4320
